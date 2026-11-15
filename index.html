@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>面向高级别自动驾驶的线控底盘平台 — BRS / StRS | 复杂系统工程课程作业</title>
+<style>
+  :root{
+    --primary:#1f4e79; --accent:#2e8b8b; --warn:#c0392b; --bg:#f7f9fb;
+    --card:#ffffff; --line:#e2e8f0; --text:#1f2937; --muted:#64748b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.75;}
+  header{background:linear-gradient(135deg,#1f4e79,#2e6b8b);color:#fff;padding:48px 24px 36px;text-align:center;}
+  header h1{margin:0 0 8px;font-size:28px;}
+  header p{margin:4px 0;opacity:.92;}
+  nav{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;z-index:10;}
+  nav a{color:var(--primary);text-decoration:none;font-size:14px;padding:4px 10px;border-radius:14px;background:#eef4f9;}
+  nav a:hover{background:var(--primary);color:#fff;}
+  main{max-width:1080px;margin:0 auto;padding:24px;}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px 28px;margin:20px 0;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  h2{color:var(--primary);border-left:5px solid var(--accent);padding-left:12px;margin-top:0;}
+  h3{color:#244; margin-top:28px;}
+  h4{color:var(--primary);margin-bottom:6px;}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px;}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#eef4f9;color:var(--primary);}
+  tr:nth-child(even) td{background:#fafcfe;}
+  .hierarchy{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch;margin:16px 0;}
+  .level{flex:1;min-width:150px;background:#eef4f9;border-top:4px solid var(--primary);border-radius:6px;padding:10px;}
+  .level.mine{border-top-color:var(--warn);background:#fdecea;}
+  .level .tag{font-size:12px;color:var(--muted);}
+  .level .name{font-weight:600;color:var(--primary);}
+  .level.mine .name{color:var(--warn);}
+  .level ul{margin:6px 0 0;padding-left:18px;font-size:13px;}
+  .badge{display:inline-block;background:var(--accent);color:#fff;font-size:12px;padding:2px 8px;border-radius:10px;margin-left:6px;}
+  .callout{background:#fff8e6;border-left:4px solid #e6a23c;padding:10px 14px;border-radius:4px;margin:12px 0;font-size:14px;}
+  .req-id{font-family:Consolas,monospace;color:var(--warn);font-weight:600;white-space:nowrap;}
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:24px;}
+  ul.tight li{margin:3px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>面向高级别自动驾驶的线控底盘平台</h1>
+  <p>系统层级分析 · 业务需求规格说明（BRS）· 相关方需求规格说明（StRS）</p>
+  <p>Complex Systems Engineering · 小组作业 2 · 2026-11</p>
+</header>
+
+<nav>
+  <a href="#hierarchy">系统层级定位</a>
+  <a href="#brs">BRS 业务需求规格</a>
+  <a href="#stakeholders">相关方列表</a>
+  <a href="#strs">StRS 相关方需求</a>
+  <a href="#conops">运营概念 ConOps</a>
+  <a href="#opscon">运行概念 OpsCon</a>
+</nav>
+
+<main>
+
+<section id="hierarchy">
+  <h2>一、所选"系统"的层级定位与串联</h2>
+  <p>本小组所选对象为<strong>面向高级别自动驾驶（L4 级）的线控底盘平台</strong>，按"任务—体系—整机—系统—子系统—模块"六层结构定位如下（红色为本对象所在层）：</p>
+
+  <div class="hierarchy">
+    <div class="level"><div class="tag">Mission 任务</div><div class="name">城市无人驾驶出行服务</div>
+      <ul><li>ODD 内为乘客提供门到门、安全舒适的 Robotaxi 运输</li></ul></div>
+    <div class="level"><div class="tag">SoS 体系</div><div class="name">自动驾驶出行运营体系</div>
+      <ul><li>无人车队+云端远程监控/接管平台</li><li>高精地图与定位服务</li><li>V2X 路侧协同设施</li><li>充换电与运维场站</li></ul></div>
+    <div class="level"><div class="tag">Vehicles 整机</div><div class="name">L4 自动驾驶整车</div>
+      <ul><li>感知—决策—线控执行三冗余集成</li><li>纯电 SUV/MPV 城配车型</li></ul></div>
+    <div class="level mine"><div class="tag">Systems 系统（本对象）</div><div class="name">线控底盘平台</div>
+      <ul><li>接收自动驾驶域控指令，精确、安全、冗余地完成横/纵/垂向运动控制</li></ul></div>
+    <div class="level"><div class="tag">Sub-systems 子系统</div><div class="name">6 大子系统</div>
+      <ul><li>线控转向 SBW</li><li>线控制动 BBW（EMB+液压冗余）</li><li>线控驱动（扭矩矢量）</li><li>主动悬架/车身姿态</li><li>底盘域控制器 Chassis DCU</li><li>功能安全与冗余监控</li></ul></div>
+    <div class="level"><div class="tag">Modules 模块</div><div class="name">关键硬件模块</div>
+      <ul><li>齿条助力电机/转角传感器/路感电机</li><li>EMB 卡钳/踏板模拟器/压力传感器</li><li>MCU 电机控制器/减速器</li><li>空气弹簧/CDC 阀/高度传感器</li><li>SoC+MCU 域控硬件、车载以太网网关、双源电源</li></ul></div>
+  </div>
+
+  <h3>层级串联叙述</h3>
+  <p><strong>任务层</strong>要求在城市 ODD 内把乘客从 A 点安全送到 B 点；<strong>体系层</strong>由车队、云控平台、高精地图与 V2X 共同保障任务可持续运营；<strong>整机层</strong>把感知决策结果转化为可执行的车辆运动；<strong>本系统（线控底盘平台）</strong>是"意图"到"车轮"之间的最后执行环节，把上层下发的目标横摆/减速度/驱动力矩转化为四轮与转向机构的真实运动；<strong>子系统层</strong>由转向、制动、驱动、悬架、域控与安全监控六条链路分工实现；<strong>模块层</strong>则是电机、传感器、控制器、阀类等可采购、可验证的物理件。任一层失效都会沿层级向上影响任务，因此线控底盘必须在子系统与模块层面做到故障可检测、降级可运行。</p>
+</section>
+
+<section id="brs">
+  <h2>二、业务需求规格说明（BRS）<span class="badge">依据 ISO/IEC/IEEE 29148:2018 表4-1</span></h2>
+
+  <h3>1. 简介</h3>
+  <h4>1.1 业务目的</h4>
+  <p>出行运营企业需要在限定 ODD 内部署 L4 级无人车队以降低人工驾驶成本、提升运营安全与准点率。传统机械/液压底盘无法直接接收电子控制指令，也不具备双冗余与故障降级能力，无法支撑 L4 级自动驾驶"驾驶员缺失"场景。本业务旨在构建一套标准化、可跨车型复用的<strong>线控底盘平台</strong>，作为整车厂与自动驾驶公司之间的通用执行底座，缩短新车型开发周期、降低单车开发成本。</p>
+
+  <h4>1.2 业务范围</h4>
+  <ul class="tight">
+    <li>a) 业务域：自动驾驶车辆底盘开发与供应链业务域。</li>
+    <li>b) 业务活动范围：线控底盘平台的需求定义、开发验证、量产交付、在役运维与 OTA 升级；覆盖整车厂（OEM）、自动驾驶公司（AD Supplier）、底盘零部件供应商三方协同。</li>
+    <li>c) 系统范围：本提案系统为"线控底盘平台"，不含自动驾驶感知/决策算法、不含车身内外饰；与两者之间通过标准车载接口（CAN/Ethernet、AEB/横纵向控制报文）交互。</li>
+  </ul>
+
+  <h4>1.3 业务概况</h4>
+  <p>业务上游为 OEM 的整车项目与 AD 公司的自动驾驶栈；中游为本线控底盘平台（含 6 大子系统）；下游为充电运维场站与云控监控平台。外部监管包括 GB 自动驾驶汽车相关标准、ISO 26262 功能安全、ISO 21448 SOTIF、UN R155/R156 网络安全与软件升级。</p>
+
+  <h4>1.4 定义</h4>
+  <ul class="tight">
+    <li><strong>线控（By-wire）</strong>：以电信号代替机械/液压连接来传递控制指令的底盘控制方式。</li>
+    <li><strong>ODD</strong>：设计运行范围（Operational Design Domain）。</li>
+    <li><strong>EMB</strong>：电子机械制动（Electro-Mechanical Brake）。</li>
+    <li><strong>ConOps / OpsCon</strong>：运营概念 / 运行概念。</li>
+  </ul>
+
+  <h4>1.5 主要相关方</h4>
+  <p>详见<a href="#stakeholders">第三节相关方列表</a>。主要相关方包括：OEM 整车项目组、自动驾驶供应商、乘客、车队运营方、远程接管安全员、底盘零部件供应商、交通监管与认证机构、保险与法务方、售后服务网络。</p>
+
+  <h3>2. 参考文献</h3>
+  <ul class="tight">
+    <li>ISO/IEC/IEEE 29148:2018 需求工程</li>
+    <li>ISO 26262 道路车辆功能安全；ISO 21448 SOTIF</li>
+    <li>UN R155/R156 网络安全与软件升级管理体系</li>
+    <li>GB/T 40429 驾驶自动化分级；GB 智能网联汽车准入试点要求</li>
+  </ul>
+
+  <h3>3. 业务管理需求</h3>
+  <h4>3.1 业务环境</h4>
+  <p>外部环境：L4 政策试点扩围、Robotaxi 商业化提速、线控底盘为强制性技术门槛；内部环境：企业已有机械底盘产线，需新建 EMB/SBW 装配与标定能力；技术基础：车载以太网、区域控制器、AUTOSAR Adaptive 已成熟。</p>
+  <h4>3.2 使命、目的与目标</h4>
+  <p>使命：成为 L4 无人车可信赖的执行底座。三年业务目标：平台覆盖 ≥3 款车型、累计装配 ≥10000 台、重大安全事故率为 0、单车开发周期缩短 30%。</p>
+  <h4>3.3 业务模型</h4>
+  <p>向 OEM 按平台授权+按车收费；向 AD 公司提供标准接口与联合标定服务；后市场提供 OTA 订阅、健康度预测与备件服务。</p>
+  <h4>3.4 信息环境</h4>
+  <p>统一底盘数据字典与信号矩阵；与企业整车 PLM、ALM 打通；在役车辆底盘状态数据回传云控平台用于预测性维护。</p>
+
+  <h3>4. 业务运行需求</h3>
+  <h4>4.1 业务过程</h4>
+  <p>核心业务流程：需求冻结 → 平台开发 → 台架/整车验证 → SOP 量产 → 在役监控 → OTA 迭代 → 报废回收。</p>
+  <h4>4.2 业务运营策略与规则</h4>
+  <ul class="tight">
+    <li>B-RULE-01：任何影响安全的需求变更必须经 FMEA/FTA 复审后方可发布。</li>
+    <li>B-RULE-02：OTA 升级必须满足 UN R156 要求，分批次灰度、可回滚。</li>
+  </ul>
+  <h4>4.3 业务运行约束</h4>
+  <p>平台必须在 -40℃~+85℃ 车规环境下工作；指令响应到执行输出端的总延迟 ≤ 50 ms；关键链路必须双冗余。</p>
+  <h4>4.4 业务运行质量</h4>
+  <p>底盘平台可用性 ≥ 99.99%；平均无故障里程 ≥ 10000 km；乘客体感横向加速度波动 ≤ 0.05 g。</p>
+  <h4>4.5 业务结构</h4>
+  <p>平台按转向/制动/驱动/悬架/域控/安全六个事业部横向开发，与 OEM 项目组按纵向矩阵对接。</p>
+
+  <h3>5. 提案系统初步运行概念</h3>
+  <h4>5.1 初步运行概念（ConOps 摘要，详见<a href="#conops">第五节</a>）</h4>
+  <p>系统在 L4 模式下完全由自动驾驶域控下达指令，驾驶员不在环；在最小风险状态（MRM）下由本平台自主执行靠边停车。支持三种运行模式：全自动驾驶、人工应急接管（带可恢复方向盘/踏板）、维保模式。</p>
+  <h4>5.2 初步运行场景</h4>
+  <ul class="tight">
+    <li>场景 S-01：城市道路跟车起步—巡航—停车，底盘平滑响应目标加速度。</li>
+    <li>场景 S-02：高速紧急避险，底盘在 100 ms 内执行最大制动+横向避让。</li>
+    <li>场景 S-03：单一传感器/执行器失效，系统 200 ms 内切换冗余通道并降级至最低风险状态。</li>
+  </ul>
+
+  <h3>6. 其他初步生存周期概念</h3>
+  <p>采办：与 Tier1 联合开发；部署：随整车 SOP 上线；支持：4S 店+移动维保车；弃置：高压件回收、ECU 数据擦除。</p>
+  <h3>7. 项目约束</h3>
+  <p>预算 ≤ 4.5 亿元；2027 年 SOP；平台必须兼容现有纯电底盘产线。</p>
+  <h3>8. 附录 8.1 缩写</h3>
+  <p>BRS / StRS / ConOps / OpsCon / SoS / ODD / EMB / SBW / BBW / DCU / MRM / SOTIF / OTA。</p>
+</section>
+
+<section id="stakeholders">
+  <h2>三、相关方列表（Stakeholder List）</h2>
+  <table>
+    <thead><tr><th>编号</th><th>相关方</th><th>角色/关注点</th><th>影响力</th><th>关心度</th></tr></thead>
+    <tbody>
+      <tr><td>SH-01</td><td>OEM 整车项目组</td><td>平台可集成性、成本、SOP 节点</td><td>高</td><td>高</td></tr>
+      <tr><td>SH-02</td><td>自动驾驶公司（AD 供应商）</td><td>接口标准、控制精度、延迟、可预测性</td><td>高</td><td>高</td></tr>
+      <tr><td>SH-03</td><td>乘客</td><td>乘坐舒适性、安全感、噪音</td><td>中</td><td>高</td></tr>
+      <tr><td>SH-04</td><td>车队运营方 / Robotaxi 公司</td><td>出勤率、能耗、维保成本</td><td>高</td><td>中</td></tr>
+      <tr><td>SH-05</td><td>远程接管安全员（云驾舱）</td><td>接管响应时延、人机交互可靠性</td><td>中</td><td>高</td></tr>
+      <tr><td>SH-06</td><td>底盘零部件 Tier1/Tier2</td><td>供货一致性、变更管理</td><td>中</td><td>中</td></tr>
+      <tr><td>SH-07</td><td>认证与监管机构</td><td>功能安全、网络安全、准入合规</td><td>高</td><td>中</td></tr>
+      <tr><td>SH-08</td><td>保险/法务</td><td>事故责任界定、数据可追溯</td><td>中</td><td>中</td></tr>
+      <tr><td>SH-09</td><td>售后/维保网络</td><td>诊断接口、故障可读性、备件</td><td>低</td><td>中</td></tr>
+      <tr><td>SH-10</td><td>行人/其他交通参与者</td><td>车辆可预测行为、声音提示</td><td>低</td><td>高</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="strs">
+  <h2>四、相关方需求规格说明（StRS）<span class="badge">依据 ISO/IEC/IEEE 29148:2018 表4-5</span></h2>
+
+  <h3>1. 简介</h3>
+  <h4>1.1 相关方目的</h4>
+  <p>把上节各相关方对"线控底盘平台"的期望转化为可验证、可追溯的需求条目，作为后续 SyRS/SRS 与设计验证的输入。</p>
+  <h4>1.2 相关方范围</h4>
+  <p>覆盖车端在役运行、开发集成、运营维保、监管合规四类场景下的全部相关方。</p>
+  <h4>1.3 概况 / 1.4 定义</h4>
+  <p>同 BRS 第 1 节；需求编号规则：StRS-域-序号。</p>
+  <h4>1.5 相关方</h4>
+  <p>见<a href="#stakeholders">第三节相关方列表</a>。</p>
+
+  <h3>2. 参考</h3>
+  <p>同 BRS 第 2 节。</p>
+
+  <h3>3. 业务管理需求</h3>
+  <p>同 BRS 第 3 节，此处不重复展开。</p>
+
+  <h3>4. 系统运行需求</h3>
+  <h4>4.1 系统过程</h4>
+  <p>底盘平台实时执行：传感器采样 → 域控融合决策 → 横/纵/垂向力矩分配 → 执行器动作 → 状态回读闭环，周期 10 ms。</p>
+  <h4>4.2 系统运行策略与规则</h4>
+  <ul class="tight">
+    <li>指令合法性校验：任何超 ODD/超物理边界的指令必须拒绝并上报。</li>
+    <li>失效优先级：执行器失效 &gt; 传感器失效 &gt; 通信失效，按最高等级触发 MRM。</li>
+  </ul>
+  <h4>4.3 系统运行约束</h4>
+  <p>横向跟踪误差 ≤ 0.2 m；纵向停车距离误差 ≤ 0.1 m；端到端延迟（指令到轮端）≤ 50 ms；EMB 建压时间 ≤ 150 ms。</p>
+  <h4>4.4 系统运行模式与状态</h4>
+  <table>
+    <thead><tr><th>模式</th><th>描述</th><th>退出条件</th></tr></thead>
+    <tbody>
+      <tr><td>M1 全自动驾驶</td><td>完全由自动驾驶栈控制，无人员在环</td><td>ODD 退出/系统故障/乘客按急停</td></tr>
+      <tr><td>M2 远程接管</td><td>云驾舱下发遥控指令，底盘按比例执行</td><td>远程连接中断 &gt; 3 s</td></tr>
+      <tr><td>M3 最小风险 MRM</td><td>自主减速靠边停车、双闪、上报</td><td>车辆静止且通知完成</td></tr>
+      <tr><td>M4 维保模式</td><td>限速 5 km/h，允许诊断仪接入</td><td>退出维保工位</td></tr>
+    </tbody>
+  </table>
+
+  <h3>5. 用户需求（详细相关方需求条目）</h3>
+  <table>
+    <thead><tr><th>需求编号</th><th>需求描述</th><th>来源相关方</th><th>验收判据</th></tr></thead>
+    <tbody>
+      <tr><td class="req-id">StRS-PERF-01</td><td>底盘平台在接收自动驾驶域控目标横向加速度指令后，轮端实际横向加速度跟踪误差应 ≤ 0.05 g，相位滞后 ≤ 30 ms。</td><td>SH-02</td><td>整车蛇形/双移线工况台架+实车测试</td></tr>
+      <tr><td class="req-id">StRS-PERF-02</td><td>100 km→0 紧急制动距离 ≤ 40 m，且制动过程不触发非预期横摆。</td><td>SH-02/SH-07</td><td>干燥沥青路面实测</td></tr>
+      <tr><td class="req-id">StRS-SAFE-01</td><td>任一单个传感器、执行器或控制器失效时，系统必须在 200 ms 内进入降级模式，整车仍可安全停车（ASIL-D 级要求）。</td><td>SH-07/SH-04</td><td>FMEA + 故障注入台架测试</td></tr>
+      <tr><td class="req-id">StRS-SAFE-02</td><td>SBW 与 BBW 必须具备机械/液压备份：主链路断电后备份回路仍可实现最小转向与制动。</td><td>SH-07</td><td>断电注入测试</td></tr>
+      <tr><td class="req-id">StRS-COMF-01</td><td>常规工况下纵向加加速度（jerk）≤ 2.5 m/s³，乘客无明显顿挫感。</td><td>SH-03</td><td>乘客主观评分 ≥ 4/5 + 加速度传感器</td></tr>
+      <tr><td class="req-id">StRS-LAT-01</td><td>远程接管指令从云驾舱发出到车辆开始响应的总延迟 ≤ 300 ms。</td><td>SH-05</td><td>5G/4G 网络下实测</td></tr>
+      <tr><td class="req-id">StRS-CYBER-01</td><td>底盘所有对外通信必须签名校验，禁止接收未签名指令；满足 UN R155。</td><td>SH-07/SH-08</td><td>渗透测试 + 型式认证</td></tr>
+      <tr><td class="req-id">StRS-OTA-01</td><td>支持底盘域控软件 OTA 升级，升级过程车辆须停泊，失败可回滚，满足 UN R156。</td><td>SH-04/SH-06</td><td>灰度升级演练</td></tr>
+      <tr><td class="req-id">StRS-MAINT-01</td><td>所有故障必须以标准化 DTC 码上报，维保人员可通过 OBD 接口在 5 分钟内定位到子系统级。</td><td>SH-09</td><td>诊断仪演练</td></tr>
+      <tr><td class="req-id">StRS-ENV-01</td><td>平台在 -40℃~+85℃、IP6K9K 防护等级下功能正常。</td><td>SH-06</td><td>环境仓 + 淋雨试验</td></tr>
+      <tr><td class="req-id">StRS-BUS-01</td><td>平台必须提供标准 CAN/Ethernet 接口与信号矩阵，使不同 AD 公司在不改硬件的情况下 2 周内完成适配。</td><td>SH-01/SH-02</td><td>第三方 AD 栈适配演练</td></tr>
+      <tr><td class="req-id">StRS-SOC-01</td><td>底盘执行动作产生的行人提示音（低速 VRU 提示）应可配置且符合当地法规。</td><td>SH-10/SH-07</td><td>声学测试 + 合规核查</td></tr>
+    </tbody>
+  </table>
+
+  <h3>6. 详细生存周期概念</h3>
+  <h4>6.1 运行概念（OpsCon 详见<a href="#opscon">第六节</a>）</h4>
+  <h4>6.2 运行场景</h4>
+  <p>在 BRS 5.2 三个场景基础上补充：S-04 远程代客泊车；S-05 雨雪湿滑路面扭矩矢量分配；S-06 OTA 夜间停泊升级。</p>
+  <h4>6.3 采办概念</h4>
+  <p>OEM 向平台公司采购平台授权，Tier1 按图纸生产关键执行器。</p>
+  <h4>6.4 部署概念</h4>
+  <p>随整车 SOP 在工厂线下线前完成 EOL 标定与四轮定位。</p>
+  <h4>6.5 支持概念</h4>
+  <p>云控平台实时监控底盘健康度，预测性维护提醒，移动维保车现场更换模块。</p>
+  <h4>6.6 弃置概念</h4>
+  <p>寿命末期高压执行器回收、ECU 数据物理擦除、材料分级拆解。</p>
+
+  <h3>7. 项目约束</h3>
+  <p>同 BRS 第 7 节。</p>
+  <h3>8. 附录</h3>
+  <p>缩写同 BRS 8.1。</p>
+</section>
+
+<section id="conops">
+  <h2>五、运营概念 ConOps（Concept of Operations）</h2>
+  <div class="callout">ConOps 站在<strong>运营企业</strong>视角，回答"这套系统将如何被用来做生意"。</div>
+  <h3>运营政策与约束</h3>
+  <ul class="tight">
+    <li>仅在已公示 ODD（城市核心区、指定天气与光照）内开放付费载人。</li>
+    <li>每 10 台车配置 1 名远程安全员，7×24 小时值班。</li>
+    <li>任何 ASIL-D 故障车辆必须立即退出运营队列。</li>
+  </ul>
+  <h3>系统描述</h3>
+  <p>线控底盘平台作为整车"执行底座"，向上提供标准横纵向控制接口，向下驱动转向/制动/驱动/悬架执行器，并自带冗余与安全监控。</p>
+  <h3>运行模式</h3>
+  <p>M1 全自动 / M2 远程接管 / M3 最小风险 / M4 维保，状态机见 StRS 4.4。</p>
+  <h3>用户类型</h3>
+  <p>乘客（无驾驶权）、远程安全员、维保技师、OEM/AD 开发工程师。</p>
+  <h3>支持环境</h3>
+  <p>云控平台 + 高精地图 + V2X 路侧单元 + 充换电站 + 移动维保车队。</p>
+</section>
+
+<section id="opscon">
+  <h2>六、运行概念 OpsCon（Operational Concept）</h2>
+  <div class="callout">OpsCon 站在<strong>车辆/系统本身</strong>视角，描述一次具体任务从上车到下车全过程中底盘如何动作。</div>
+  <h3>典型任务：城市 Robotaxi 接驳</h3>
+  <table>
+    <thead><tr><th>阶段</th><th>自动驾驶栈指令</th><th>线控底盘动作</th><th>安全机制</th></tr></thead>
+    <tbody>
+      <tr><td>0. 预约泊出</td><td>目标车速 5 km/h、目标路径</td><td>SBW 小转角跟踪、EMB 释放、电机蠕行</td><td>低速 VRU 提示音开启</td></tr>
+      <tr><td>1. 上车确认</td><td>静止等待</td><td>EPB 夹紧、悬架降至登车高度</td><td>车门联锁校验</td></tr>
+      <tr><td>2. 起步巡航</td><td>目标加速度 1.5 m/s²</td><td>驱动电机平滑输出、jerk 限制</td><td>横向偏差闭环监控</td></tr>
+      <tr><td>3. 路口跟停</td><td>目标减速度 3 m/s²</td><td>EMB 建压 + 电机回收制动协调</td><td>前后车距雷达交叉校验</td></tr>
+      <tr><td>4. 紧急场景</td><td>急减速 + 避让</td><td>EMB 最大建压、SBW 横向避让、CDC 变硬</td><td>双冗余通道实时比对</td></tr>
+      <tr><td>5. 接管请求</td><td>远程安全员介入</td><td>按远程指令比例执行，延迟 ≤300 ms</td><td>失联 3 s 自动 MRM</td></tr>
+      <tr><td>6. 到达下车</td><td>静止</td><td>EPB 夹紧、悬架升/降至舒适高度</td><td>挡位 P 档确认</td></tr>
+      <tr><td>7. 故障/ODD 退出</td><td>MRM 请求</td><td>自主靠边停车、双闪、上报云控</td><td>故障注入后 200 ms 内触发</td></tr>
+    </tbody>
+  </table>
+</section>
+
+</main>
+
+<footer>
+  Complex Systems Engineering · 小组作业 2 · 面向高级别自动驾驶的线控底盘平台<br>
+  仓库：complex-systems-engineering-2026 · 依据 ISO/IEC/IEEE 29148:2018 表4-1 / 表4-5 编制
+</footer>
+
+</body>
+</html>
