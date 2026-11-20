@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>面向高级别自动驾驶的线控底盘平台 — SyRS / 初始架构 / 控制结构框图 | 复杂系统工程课程作业3</title>
+<style>
+  :root{
+    --primary:#1f4e79; --accent:#2e8b8b; --warn:#c0392b; --bg:#f7f9fb;
+    --card:#ffffff; --line:#e2e8f0; --text:#1f2937; --muted:#64748b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.75;}
+  header{background:linear-gradient(135deg,#1f4e79,#2e6b8b);color:#fff;padding:48px 24px 36px;text-align:center;}
+  header h1{margin:0 0 8px;font-size:28px;}
+  header p{margin:4px 0;opacity:.92;}
+  nav{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;z-index:10;}
+  nav a{color:var(--primary);text-decoration:none;font-size:14px;padding:4px 10px;border-radius:14px;background:#eef4f9;}
+  nav a:hover{background:var(--primary);color:#fff;}
+  main{max-width:1120px;margin:0 auto;padding:24px;}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px 28px;margin:20px 0;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  h2{color:var(--primary);border-left:5px solid var(--accent);padding-left:12px;margin-top:0;}
+  h3{color:#244; margin-top:28px;}
+  h4{color:var(--primary);margin-bottom:6px;}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px;}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#eef4f9;color:var(--primary);}
+  tr:nth-child(even) td{background:#fafcfe;}
+  .badge{display:inline-block;background:var(--accent);color:#fff;font-size:12px;padding:2px 8px;border-radius:10px;margin-left:6px;}
+  .callout{background:#fff8e6;border-left:4px solid #e6a23c;padding:10px 14px;border-radius:4px;margin:12px 0;font-size:14px;}
+  .req-id{font-family:Consolas,monospace;color:var(--warn);font-weight:600;white-space:nowrap;}
+  ul.tight li{margin:3px 0;}
+  .diagram-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:#fff;padding:12px;}
+  .chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;}
+  .chain .step{flex:1;min-width:170px;background:#eef4f9;border-top:4px solid var(--primary);border-radius:6px;padding:10px;}
+  .chain .step.mine{border-top-color:var(--warn);background:#fdecea;}
+  .chain .arrow{font-size:20px;color:var(--muted);}
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:24px;}
+  svg text{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>面向高级别自动驾驶的线控底盘平台</h1>
+  <p>系统需求规格书（SyRS）· 初始系统架构 · 系统控制结构框图 · 安全需求与安全架构</p>
+  <p>Complex Systems Engineering · 小组作业 3 · 2026-11-20</p>
+</header>
+
+<nav>
+  <a href="#trace">作业衔接与边界</a>
+  <a href="#diagram">控制结构框图</a>
+  <a href="#architecture">初始系统架构</a>
+  <a href="#syrs">SyRS 系统需求规格</a>
+  <a href="#safety">安全需求与安全架构</a>
+</nav>
+
+<main>
+
+<section id="trace">
+  <h2>一、作业衔接与系统边界</h2>
+  <p>本作业是课程小组作业的第三次提交，与前两次作业在时间与逻辑上前后衔接：</p>
+  <div class="chain">
+    <div class="step"><div class="tag">作业1 · 2026-11-11</div><div class="name">六层层级拆解</div>
+      <ul class="tight"><li>定位本系统于 Systems 层，梳理任务—体系—整机—系统—子系统—模块要素</li></ul></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="tag">作业2 · 2026-11-15</div><div class="name">BRS + StRS</div>
+      <ul class="tight"><li>输出业务需求、相关方列表、相关方需求（StRS）、ConOps / OpsCon</li></ul></div>
+    <div class="arrow">→</div>
+    <div class="step mine"><div class="tag">作业3 · 2026-11-20</div><div class="name">SyRS + 初始架构 + 框图</div>
+      <ul class="tight"><li>由相关方需求转换为系统需求，定义初始架构、控制结构框图与安全架构</li></ul></div>
+  </div>
+
+  <h3>1.1 系统目的与范围</h3>
+  <p>本小组所选系统为<strong>面向 L4/L5 高级别自动驾驶的线控底盘平台</strong>（SOI, System of Interest）：以电信号为指令载体，通过冗余架构实现制动、转向、驱动、悬架等整车运动控制，向上承接自动驾驶域控（智驾域）的规划决策指令，向下驱动各执行部件，是连接「大脑决策」与「车轮执行」的关键执行底座。</p>
+  <ul class="tight">
+    <li><strong>系统边界内</strong>：线控制动、线控转向、线控驱动/扭矩控制、主动悬架与姿态控制、底盘域控制器、功能安全与冗余监控链路。</li>
+    <li><strong>系统边界外</strong>：自动驾驶感知/决策算法、车身内外饰与乘员舱、动力三电与电池能源、车路云协同与交通基础设施；二者通过标准车载接口交互。</li>
+  </ul>
+
+  <h3>1.2 本作业产出物</h3>
+  <ul class="tight">
+    <li>系统需求规格书（SyRS）：依据 ISO/IEC/IEEE 29148:2018 表 5-1 范例轮廓，承接作业2 StRS 条目；</li>
+    <li>初始系统架构：逻辑架构（子系统划分、功能映射与接口）；</li>
+    <li>系统控制结构框图：按课堂练习模板绘制 Driver / System / Vehicle / Environment / Other System 交互结构；</li>
+    <li>安全需求与安全架构：功能安全、冗余降级与网络安全设计要点。</li>
+  </ul>
+</section>
+
+<section id="diagram">
+  <h2>二、系统控制结构框图<span class="badge">课堂练习模板</span></h2>
+  <p>下图按课堂练习给定的控制结构模板绘制：<strong>Driver</strong>（指令发起方）向 <strong>System</strong>（线控底盘平台，含 Control Algorithm 控制算法与 Process Model 被控对象模型）下发控制作用（Control Action，红色箭头），系统状态经反馈（Feedback，蓝色箭头）回传；System 驱动 <strong>Vehicle</strong>（整车）并接收整车状态反馈；左侧为 <strong>Other System</strong>（相关系统），右侧虚线框为 <strong>Environment</strong>（道路与交通环境）。</p>
+
+  <div class="diagram-wrap">
+  <svg viewBox="0 0 1120 700" width="100%" role="img" aria-label="线控底盘平台系统控制结构框图">
+    <defs>
+      <marker id="arrow-black" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L8,3 L0,6 Z" fill="#333"/>
+      </marker>
+      <marker id="arrow-red" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L8,3 L0,6 Z" fill="#c0392b"/>
+      </marker>
+      <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L8,3 L0,6 Z" fill="#1f6feb"/>
+      </marker>
+      <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L8,3 L0,6 Z" fill="#5aa800"/>
+      </marker>
+      <marker id="arrow-black-rev" markerWidth="10" markerHeight="10" refX="0" refY="3" orient="auto" markerUnits="strokeWidth">
+        <path d="M8,0 L0,3 L8,6 Z" fill="#333"/>
+      </marker>
+    </defs>
+
+    <!-- ============ 图例 ============ -->
+    <g id="legend" font-size="12">
+      <rect x="755" y="18" width="355" height="150" fill="#f7f9fb" stroke="#e2e8f0" rx="8"/>
+      <text x="770" y="40" font-weight="700" fill="#1f4e79">Legend 图例</text>
+
+      <line x1="770" y1="60" x2="800" y2="60" stroke="#333" stroke-width="2" marker-end="url(#arrow-black)"/>
+      <text x="810" y="64" fill="#1f2937">Interaction 交互</text>
+
+      <rect x="770" y="78" width="26" height="14" fill="#3b3b98"/>
+      <text x="810" y="90" fill="#1f2937">Driver 指令发起方</text>
+
+      <rect x="770" y="100" width="26" height="14" fill="#f3f0d8" stroke="#b8a86a"/>
+      <text x="810" y="112" fill="#1f2937">System 系统（SOI）</text>
+
+      <rect x="770" y="122" width="26" height="14" fill="#d3d3d3"/>
+      <text x="810" y="134" fill="#1f2937">Vehicle 整车</text>
+
+      <rect x="950" y="78" width="26" height="14" fill="#eef9e0" stroke="#8ee000" stroke-dasharray="5 3"/>
+      <text x="986" y="90" fill="#1f2937">Environment 环境</text>
+
+      <rect x="950" y="100" width="26" height="14" fill="#fff" stroke="#333"/>
+      <text x="986" y="112" fill="#1f2937">Related System 相关系统</text>
+
+      <line x1="950" y1="128" x2="980" y2="128" stroke="#c0392b" stroke-width="2" marker-end="url(#arrow-red)"/>
+      <text x="986" y="132" fill="#c0392b">Control Action 控制作用</text>
+
+      <line x1="770" y1="142" x2="800" y2="142" stroke="#1f6feb" stroke-width="2" marker-end="url(#arrow-blue)"/>
+      <text x="810" y="146" fill="#1f6feb">Feedback 反馈</text>
+    </g>
+
+    <!-- ============ Driver ============ -->
+    <rect x="390" y="110" width="320" height="74" fill="#3b3b98" rx="8"/>
+    <text x="550" y="138" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">Driver 指令发起方</text>
+    <text x="550" y="160" text-anchor="middle" fill="#fff" font-size="12">自动驾驶域控 AD-ECU · 远程接管安全员</text>
+
+    <!-- ============ System（SOI） ============ -->
+    <rect x="310" y="250" width="500" height="190" fill="#f3f0d8" stroke="#b8a86a" stroke-width="2" rx="8"/>
+    <text x="330" y="278" fill="#5a4a1a" font-size="15" font-weight="700">System 线控底盘平台（SOI）</text>
+
+    <rect x="330" y="300" width="215" height="128" fill="#fff" stroke="#8a7a3a" rx="6"/>
+    <text x="437" y="322" text-anchor="middle" fill="#1f4e79" font-size="13" font-weight="700">Control Algorithm</text>
+    <text x="437" y="338" text-anchor="middle" fill="#1f4e79" font-size="12">底盘域控控制算法</text>
+    <text x="345" y="360" fill="#1f2937" font-size="11">· 横/纵/垂向运动控制策略</text>
+    <text x="345" y="380" fill="#1f2937" font-size="11">· 冗余一致性监控与仲裁</text>
+    <text x="345" y="400" fill="#1f2937" font-size="11">· 故障降级与 MRM 决策</text>
+    <text x="345" y="420" fill="#1f2937" font-size="11">· 指令合法性/安全校验</text>
+
+    <rect x="585" y="300" width="200" height="128" fill="#fff" stroke="#8a7a3a" rx="6"/>
+    <text x="685" y="322" text-anchor="middle" fill="#1f4e79" font-size="13" font-weight="700">Process Model</text>
+    <text x="685" y="338" text-anchor="middle" fill="#1f4e79" font-size="12">被控对象模型</text>
+    <text x="600" y="360" fill="#1f2937" font-size="11">· 制动执行链路模型</text>
+    <text x="600" y="380" fill="#1f2937" font-size="11">· 转向执行链路模型</text>
+    <text x="600" y="400" fill="#1f2937" font-size="11">· 驱动/悬架作动模型</text>
+    <text x="600" y="420" fill="#1f2937" font-size="11">· 整车动力学接口模型</text>
+
+    <!-- ============ Vehicle ============ -->
+    <rect x="360" y="530" width="400" height="74" fill="#d3d3d3" rx="8"/>
+    <text x="560" y="558" text-anchor="middle" fill="#1f2937" font-size="15" font-weight="700">Vehicle 整车</text>
+    <text x="560" y="580" text-anchor="middle" fill="#1f2937" font-size="12">车身 · 车轮 · 三电能源 · 乘员与被动安全</text>
+
+    <!-- ============ Environment ============ -->
+    <rect x="880" y="130" width="210" height="480" fill="#eef9e0" stroke="#8ee000" stroke-width="2" stroke-dasharray="8 5" rx="8"/>
+    <text x="985" y="158" text-anchor="middle" fill="#3d7a00" font-size="15" font-weight="700">Environment</text>
+    <text x="985" y="178" text-anchor="middle" fill="#3d7a00" font-size="12">道路与交通环境</text>
+    <text x="895" y="210" fill="#1f2937" font-size="11">· 路面附着 / 坡度 / 横风</text>
+    <text x="895" y="232" fill="#1f2937" font-size="11">· 车流 / 行人 / 非机动车</text>
+    <text x="895" y="254" fill="#1f2937" font-size="11">· 天气 / 光照 / 温度</text>
+    <text x="895" y="276" fill="#1f2937" font-size="11">· 道路设施 / 交通标志</text>
+    <text x="895" y="298" fill="#1f2937" font-size="11">· ODD 边界与法规条件</text>
+
+    <!-- ============ Other System ============ -->
+    <rect x="30" y="290" width="240" height="120" fill="#fff" stroke="#333" stroke-width="1.5" rx="8"/>
+    <text x="150" y="316" text-anchor="middle" fill="#1f4e79" font-size="14" font-weight="700">Other System 相关系统</text>
+    <text x="45" y="340" fill="#1f2937" font-size="11">· 动力三电（电池/电机/电控）</text>
+    <text x="45" y="360" fill="#1f2937" font-size="11">· 车身与座舱系统</text>
+    <text x="45" y="380" fill="#1f2937" font-size="11">· 高精地图 / 定位服务</text>
+    <text x="45" y="400" fill="#1f2937" font-size="11">· 云控平台 / V2X 路侧单元</text>
+
+    <!-- ============ 连线：Driver <-> System ============ -->
+    <line x1="470" y1="184" x2="470" y2="250" stroke="#c0392b" stroke-width="2.2" marker-end="url(#arrow-red)"/>
+    <text x="460" y="210" text-anchor="end" fill="#c0392b" font-size="11" font-weight="600">Control Action</text>
+    <text x="460" y="226" text-anchor="end" fill="#1f2937" font-size="11">目标车速/横摆/加速度、遥控指令</text>
+
+    <line x1="650" y1="250" x2="650" y2="184" stroke="#1f6feb" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+    <text x="660" y="210" fill="#1f6feb" font-size="11" font-weight="600">Feedback</text>
+    <text x="660" y="226" fill="#1f2937" font-size="11">底盘状态、故障/降级上报</text>
+
+    <!-- ============ 连线：System <-> Vehicle ============ -->
+    <line x1="500" y1="440" x2="500" y2="530" stroke="#c0392b" stroke-width="2.2" marker-end="url(#arrow-red)"/>
+    <text x="300" y="470" fill="#c0392b" font-size="11" font-weight="600">Control Action</text>
+    <text x="300" y="486" fill="#1f2937" font-size="11">转向角 · 制动压力 · 驱动扭矩 · 悬架作动量</text>
+
+    <line x1="620" y1="530" x2="620" y2="440" stroke="#1f6feb" stroke-width="2.2" marker-end="url(#arrow-blue)"/>
+    <text x="630" y="478" fill="#1f6feb" font-size="11" font-weight="600">Feedback</text>
+    <text x="630" y="494" fill="#1f2937" font-size="11">轮速 · 转角 · 压力 · 车身姿态/高度</text>
+
+    <!-- ============ 连线：Other System <-> System ============ -->
+    <line x1="270" y1="350" x2="310" y2="350" stroke="#333" stroke-width="2" marker-start="url(#arrow-black-rev)" marker-end="url(#arrow-black)"/>
+    <text x="150" y="278" text-anchor="middle" fill="#1f2937" font-size="11">信号 / 能量 / 数据接口</text>
+    <text x="150" y="294" text-anchor="middle" fill="#1f2937" font-size="11">CAN / CAN-FD / 车载以太网</text>
+
+    <!-- ============ 连线：Environment <-> Vehicle / System ============ -->
+    <line x1="880" y1="560" x2="760" y2="560" stroke="#5aa800" stroke-width="2" marker-end="url(#arrow-green)"/>
+    <text x="810" y="552" text-anchor="middle" fill="#3d7a00" font-size="11">环境影响：附着 · 坡度 · 风阻</text>
+
+    <line x1="760" y1="588" x2="880" y2="588" stroke="#333" stroke-width="1.8" marker-end="url(#arrow-black)"/>
+    <text x="810" y="606" text-anchor="middle" fill="#1f2937" font-size="11">车辆行为：轨迹 · 噪音 · 排放</text>
+
+    <line x1="880" y1="360" x2="810" y2="360" stroke="#5aa800" stroke-width="1.8" marker-end="url(#arrow-green)"/>
+    <text x="845" y="348" text-anchor="middle" fill="#3d7a00" font-size="11">工况扰动</text>
+
+    <!-- ============ 连线：Other System <-> Environment（V2X/云控/地图） ============ -->
+    <path d="M150,290 L150,218 L985,218 L985,130" fill="none" stroke="#333" stroke-width="1.6" stroke-dasharray="6 4" marker-end="url(#arrow-black)"/>
+    <text x="560" y="236" text-anchor="middle" fill="#1f2937" font-size="11">V2X / 云控 / 高精地图与定位数据交互</text>
+  </svg>
+  </div>
+
+  <h3>2.1 框图要素说明</h3>
+  <table>
+    <thead><tr><th>模板要素</th><th>本系统对应对象</th><th>职责与交互内容</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Driver</strong></td><td>自动驾驶域控 AD-ECU；远程接管安全员（M2 模式）</td><td>L4 工况下由智驾栈下发目标车速、横摆/加速度等运动指令；远程安全员在接管模式下下发遥控指令；接收底盘状态与故障反馈。</td></tr>
+      <tr><td><strong>System（SOI）</strong></td><td>线控底盘平台</td><td><em>Control Algorithm</em>：底盘域控内的横/纵/垂向控制策略、冗余监控仲裁、MRM 决策与指令校验；<em>Process Model</em>：制动/转向/驱动/悬架执行链路及整车动力学接口模型。</td></tr>
+      <tr><td><strong>Vehicle</strong></td><td>搭载本平台的 L4 整车</td><td>承载底盘执行机构与乘员；向系统反馈轮速、转角、压力、车身姿态等整车状态。</td></tr>
+      <tr><td><strong>Environment</strong></td><td>道路与交通环境</td><td>路面附着、坡度、风阻、车流行人、天气光照、道路设施与 ODD 边界；对车辆与底盘施加扰动，同时承受车辆行为影响。</td></tr>
+      <tr><td><strong>Other System</strong></td><td>动力三电、车身座舱、高精地图/定位、云控/V2X</td><td>与底盘平台通过 CAN/CAN-FD/车载以太网交换信号、能量与数据；地图定位与云控信息经环境侧链路协同。</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.2 接口与交互方向</h3>
+  <table>
+    <thead><tr><th>交互链路</th><th>类型</th><th>主要信号 / 内容</th></tr></thead>
+    <tbody>
+      <tr><td>Driver → System</td><td style="color:#c0392b;font-weight:600;">Control Action</td><td>目标车速、目标横摆角速度/横向加速度、目标减速度、远程遥控转向/制动指令。</td></tr>
+      <tr><td>System → Driver</td><td style="color:#1f6feb;font-weight:600;">Feedback</td><td>底盘执行状态、传感器/执行器故障、降级模式与 MRM 状态、可执行性反馈。</td></tr>
+      <tr><td>System → Vehicle</td><td style="color:#c0392b;font-weight:600;">Control Action</td><td>前轮转向角、制动压力/夹紧力、驱动/回收扭矩、悬架刚度与高度作动量。</td></tr>
+      <tr><td>Vehicle → System</td><td style="color:#1f6feb;font-weight:600;">Feedback</td><td>轮速、方向盘/齿条转角、制动压力、车身高度与姿态、载荷与轴荷状态。</td></tr>
+      <tr><td>System ↔ Other System</td><td style="font-weight:600;">Interaction（双向）</td><td>驱动扭矩与能量状态交换、车门/座椅/乘员状态、定位与导航信息、云控监控与诊断数据。</td></tr>
+      <tr><td>Environment ↔ Vehicle / System</td><td style="font-weight:600;">Interaction</td><td>环境扰动输入与车辆行为输出；V2X/云控/地图数据经相关系统间接接入。</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="architecture">
+  <h2>三、初始系统架构<span class="badge">逻辑架构视图</span></h2>
+  <p>依据架构定义过程，先以逻辑元素表达系统高层功能与内部交互，不约束具体物理实现。线控底盘平台初始架构划分为 6 个逻辑子系统，向上经底盘域控与智驾域对接，向下驱动各执行链路。</p>
+
+  <table>
+    <thead><tr><th>编号</th><th>逻辑子系统</th><th>主要功能</th><th>关键接口 / 下属模块</th></tr></thead>
+    <tbody>
+      <tr><td>ARCH-01</td><td>线控转向 SBW</td><td>自动转向执行、转向冗余备份、路感模拟</td><td>齿条助力电机、转角/推力传感器、路感电机、备份通道</td></tr>
+      <tr><td>ARCH-02</td><td>线控制动 BBW（EMB + 液压冗余）</td><td>电控制动建压、能量回收协调、驻车与紧急制动</td><td>EMB 卡钳/液压调节器、踏板模拟器、压力传感器、备份制动回路</td></tr>
+      <tr><td>ARCH-03</td><td>线控驱动 / 扭矩矢量</td><td>驱动扭矩分配、牵引力控制、防滑与回收协调</td><td>电机控制器 MCU、减速器、扭矩分配与 TCS 模块</td></tr>
+      <tr><td>ARCH-04</td><td>主动悬架 / 车身姿态</td><td>减振、侧倾/俯仰抑制、车身高度与刚度调节</td><td>空气弹簧/CDC 阀、作动器、高度与姿态传感器</td></tr>
+      <tr><td>ARCH-05</td><td>底盘域控制器 Chassis DCU</td><td>控制策略运行、子系统协调、通信网关、诊断与状态管理</td><td>SoC+MCU 计算单元、CAN/以太网网关、双源电源、监控诊断单元</td></tr>
+      <tr><td>ARCH-06</td><td>功能安全与冗余监控</td><td>双通道一致性比对、故障检测、降级仲裁、MRM 触发</td><td>独立监控器、冗余电源/通信链路、安全状态管理软件</td></tr>
+    </tbody>
+  </table>
+
+  <div class="callout">架构视图说明：逻辑架构聚焦「功能如何划分、元素间如何交互」；后续设计定义阶段再将上述逻辑元素映射到具体硬件项、软件项与物理布置（参考文档 5.2 节：架构处于逻辑域，设计处于物理域）。</div>
+
+  <h3>3.1 架构内主要数据流</h3>
+  <ul class="tight">
+    <li><strong>指令流</strong>：智驾域 → DCU 指令校验与仲裁 → 转向/制动/驱动/悬架子系统 → 执行机构。</li>
+    <li><strong>状态流</strong>：各传感器 → 子系统预处理 → DCU 融合与监控 → 反馈智驾域与云控平台。</li>
+    <li><strong>安全流</strong>：监控器独立采集双通道数据 → 一致性比对 → 异常时切断主链路、投入备份、触发降级/MRM。</li>
+  </ul>
+</section>
+
+<section id="syrs">
+  <h2>四、系统需求规格书（SyRS）<span class="badge">ISO/IEC/IEEE 29148:2018 表 5-1</span></h2>
+  <p>SyRS 从技术视角描述系统「将做什么」及其与外部环境的接口，承接作业2 已确认的 StRS 条目；下列需求与第 2 节框图、第 3 节架构相互对应，每条需求均应在第 4 章「验证」中给出对应验证方法。</p>
+
+  <h3>1. 简介</h3>
+  <h4>1.1 系统目的</h4>
+  <p>在 L4/L5 自动驾驶工况下，安全、精确、可冗余地执行整车横/纵/垂向运动控制，作为智驾决策与车轮执行之间的标准执行底座。</p>
+  <h4>1.2 系统范围</h4>
+  <p>覆盖线控转向、制动、驱动、悬架、底盘域控及安全冗余链路；不含感知决策算法、车身内外饰与动力能源本体。</p>
+  <h4>1.3 系统概况</h4>
+  <p>系统环境见第 2 节框图；系统功能为运动指令接收、控制分配、执行驱动、状态反馈与安全降级；用户特征为无在环驾驶员，使用者包括智驾系统、远程安全员与维保人员。</p>
+  <h4>1.4 定义</h4>
+  <p>SBW / BBW / EMB / DCU / MRM / ODD / ASIL / SOTIF / TCS / CDC，缩写同作业2。</p>
+
+  <h3>2. 参考</h3>
+  <ul class="tight">
+    <li>ISO/IEC/IEEE 29148:2018 需求工程；ISO 26262 道路车辆功能安全；ISO 21448 SOTIF；UN R155/R156；GB/T 40429 驾驶自动化分级。</li>
+  </ul>
+
+  <h3>3. 系统需求</h3>
+  <h4>3.1 功能需求</h4>
+  <table>
+    <thead><tr><th>需求编号</th><th>需求描述</th><th>对应架构</th></tr></thead>
+    <tbody>
+      <tr><td class="req-id">SyRS-FUNC-01</td><td>系统应接收智驾域/远程安全员下发的目标车速、横摆与加减速度指令，并完成合法性与物理边界校验。</td><td>ARCH-05</td></tr>
+      <tr><td class="req-id">SyRS-FUNC-02</td><td>系统应将上层运动指令分配为转向角、制动压力、驱动扭矩与悬架作动量，并协调回收制动与摩擦制动。</td><td>ARCH-01~04</td></tr>
+      <tr><td class="req-id">SyRS-FUNC-03</td><td>系统应实时采集轮速、转角、压力、姿态等状态并形成闭环反馈。</td><td>ARCH-05</td></tr>
+      <tr><td class="req-id">SyRS-FUNC-04</td><td>系统应在故障或 ODD 退出时自主执行最小风险动作（减速、靠边停车、双闪、上报）。</td><td>ARCH-06</td></tr>
+    </tbody>
+  </table>
+
+  <h4>3.2 可用性需求</h4>
+  <table>
+    <thead><tr><th>需求编号</th><th>需求描述</th></tr></thead>
+    <tbody>
+      <tr><td class="req-id">SyRS-AVAIL-01</td><td>底盘平台在役可用性 ≥ 99.99%；关键控制链路单点故障不应导致整车丧失基本运动能力。</td></tr>
+      <tr><td class="req-id">SyRS-AVAIL-02</td><td>系统应支持不停运情况下的模块级诊断定位与更换，平均维修时间满足维保规程。</td></tr>
+    </tbody>
+  </table>
+
+  <h4>3.3 性能需求</h4>
+  <table>
+    <thead><tr><th>需求编号</th><th>需求描述</th></tr></thead>
+    <tbody>
+      <tr><td class="req-id">SyRS-PERF-01</td><td>指令到轮端执行输出的端到端延迟 ≤ 50 ms；横向加速度跟踪误差 ≤ 0.05 g，相位滞后 ≤ 30 ms。</td></tr>
+      <tr><td class="req-id">SyRS-PERF-02</td><td>100 km/h→0 紧急制动距离 ≤ 40 m（干燥沥青），制动过程不产生非预期横摆。</td></tr>
+      <tr><td class="req-id">SyRS-PERF-03</td><td>常规工况纵向 jerk ≤ 2.5 m/s³；横向跟踪误差 ≤ 0.2 m，纵向停车距离误差 ≤ 0.1 m。</td></tr>
+    </tbody>
+  </table>
+
+  <h4>3.4 接口需求</h4>
+  <ul class="tight">
+    <li><strong>3.4.1 外部接口</strong>：与智驾域提供标准 CAN/CAN-FD/车载以太网接口与信号矩阵；与动力三电交换扭矩/能量状态；与云控平台交换诊断与健康度数据；满足 StRS-BUS-01 的第三方适配要求。</li>
+    <li><strong>3.4.2 内部接口</strong>：DCU 与各子系统之间定义控制指令、状态反馈、故障与使能信号接口；安全监控链路具备独立于主控制链路的信号通道。</li>
+  </ul>
+
+  <h4>3.5 系统运行 / 3.6 模式与状态</h4>
+  <table>
+    <thead><tr><th>模式</th><th>描述</th><th>退出条件</th></tr></thead>
+    <tbody>
+      <tr><td>M1 全自动驾驶</td><td>完全由智驾栈控制，无人员在环</td><td>ODD 退出 / 系统故障 / 急停触发</td></tr>
+      <tr><td>M2 远程接管</td><td>云驾舱遥控指令按比例执行</td><td>远程连接中断 &gt; 3 s</td></tr>
+      <tr><td>M3 最小风险 MRM</td><td>自主减速靠边停车、双闪、上报</td><td>车辆静止且通知完成</td></tr>
+      <tr><td>M4 维保模式</td><td>限速 5 km/h，诊断仪可接入</td><td>退出维保工位</td></tr>
+    </tbody>
+  </table>
+
+  <h4>3.7 物理特征 / 3.8 环境条件</h4>
+  <p>执行器与控制器满足车规安装尺寸与布置约束；工作温度 -40℃~+85℃，防护等级 IP6K9K，满足振动、盐雾与电磁兼容要求（承接 StRS-ENV-01）。</p>
+
+  <h4>3.9 安保（网络安全）需求</h4>
+  <ul class="tight">
+    <li class="req-id">SyRS-CYBER-01 所有对外控制指令必须签名校验，拒绝未签名/非法指令；满足 UN R155 网络安全管理要求。</li>
+    <li class="req-id">SyRS-CYBER-02 软件升级须满足 UN R156：停泊状态下灰度升级、失败可回滚（承接 StRS-OTA-01）。</li>
+  </ul>
+
+  <h4>3.10 信息管理 / 3.11 政策法规 / 3.12 生存周期支持 / 3.13 包装运输</h4>
+  <p>故障以标准 DTC 码上报并可追溯到子系统级；满足自动驾驶准入、功能安全与声学提示等法规；支持在役监控、预测性维护与备件供应；零部件按车规包装、运输与仓储条件交付。</p>
+
+  <h3>4. 验证</h3>
+  <table>
+    <thead><tr><th>需求域</th><th>验证方法</th><th>使能设施 / 判据</th></tr></thead>
+    <tbody>
+      <tr><td>功能需求</td><td>台架集成测试 + 整车场景测试</td><td>HIL 台架、实车场地；指令—动作—状态闭环正确</td></tr>
+      <tr><td>性能需求</td><td>台架测量 + 实车工况试验</td><td>惯导/加速度计、制动测试设备；达到 3.3 节指标</td></tr>
+      <tr><td>接口需求</td><td>接口一致性测试 + 第三方适配演练</td><td>信号矩阵、总线协议测试工具；2 周内完成适配</td></tr>
+      <tr><td>安全/安保需求</td><td>FMEA/FTA、故障注入、渗透测试、型式认证</td><td>故障注入台架、网络安全测试环境；ASIL-D 与 R155/R156 达标</td></tr>
+    </tbody>
+  </table>
+
+  <h3>5. 附录：假设与依赖</h3>
+  <p>假设智驾域提供符合信号矩阵的指令与时间同步；依赖高精定位、云控通信与三电系统正常工作；平台跨车型复用需在整车集成阶段完成标定。</p>
+</section>
+
+<section id="safety">
+  <h2>五、安全需求与安全架构</h2>
+  <p>线控底盘是 L4 车辆「驾驶员缺失」条件下的最后执行环节，安全为最高优先级。安全需求由功能安全（ISO 26262）、预期功能安全（SOTIF）与网络安全（UN R155）共同构成。</p>
+
+  <h3>5.1 安全需求</h3>
+  <table>
+    <thead><tr><th>需求编号</th><th>安全需求描述</th><th>等级 / 依据</th></tr></thead>
+    <tbody>
+      <tr><td class="req-id">SAFE-01</td><td>任一单个传感器、执行器或控制器失效时，系统应在 200 ms 内进入降级模式，整车仍可安全停车。</td><td>ASIL-D · ISO 26262</td></tr>
+      <tr><td class="req-id">SAFE-02</td><td>转向与制动主链路须具备备份通道（机械/液压备份或第二电执行通道），主链路断电后仍可实现最小转向与制动。</td><td>ASIL-D · ISO 26262</td></tr>
+      <tr><td class="req-id">SAFE-03</td><td>双通道数据须由独立监控器实时比对，不一致时隔离主通道并仲裁降级。</td><td>功能安全架构要求</td></tr>
+      <tr><td class="req-id">SAFE-04</td><td>应通过场景与边界分析识别非失效导致的危险（感知局限、操控极限），并在 ODD 内规避或降级。</td><td>ISO 21448 SOTIF</td></tr>
+      <tr><td class="req-id">SAFE-05</td><td>控制通信须防伪造、防篡改；诊断与日志不可被未授权修改。</td><td>UN R155</td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.2 安全架构要点</h3>
+  <ul class="tight">
+    <li><strong>双通道冗余</strong>：主/备控制链路在供电、通信、计算与执行层并行布置，关键信号双源采集。</li>
+    <li><strong>独立监控</strong>：安全监控器独立于主控制器运行，完成一致性校验、故障诊断与安全状态仲裁。</li>
+    <li><strong>分级降级</strong>：故障等级对应不同降级策略——限制功能 → 限速蠕行 → MRM 靠边停车；备份链路保证最低运动能力。</li>
+    <li><strong>安全状态管理</strong>：定义失效后的默认安全状态（EPB 夹紧、转向回正、驱动力切断/保持），并在全生命周期保持需求—架构—验证双向可追溯。</li>
+    <li><strong>网络安全分区</strong>：对外接口与内部控制链路分区隔离，指令签名与访问控制贯穿通信、诊断与升级流程。</li>
+  </ul>
+
+  <div class="callout">追溯关系：本节安全需求由作业2 StRS-SAFE-01/02、StRS-CYBER-01 派生而来，并分配至第 3 节 ARCH-06 安全冗余子系统；后续设计与验证阶段继续向下分解至硬件/软件需求。</div>
+</section>
+
+</main>
+
+<footer>
+  Complex Systems Engineering · 小组作业 3 · 面向高级别自动驾驶的线控底盘平台<br>
+  仓库：complex-systems-engineering-2026 · 依据 ISO/IEC/IEEE 29148:2018 表5-1 与课堂控制结构模板编制 · 2026-11-20
+</footer>
+
+</body>
+</html>
