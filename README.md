@@ -12,6 +12,7 @@
 |---|---|---|---|
 | 2026-11-11 | 小组讨论：六层层级拆解 | 所选系统为「面向高级别自动驾驶的线控底盘平台」，定位 Systems 层，补全任务—体系—整机—系统—子系统—模块 | [submissions/2026-11-11-group-discussion/by-wire-chassis-platform.md](submissions/2026-11-11-group-discussion/by-wire-chassis-platform.md) |
 | 2026-11-15 | 小组作业2：BRS + StRS | 依据 ISO/IEC/IEEE 29148:2018 表4-1、表4-5 输出业务需求与相关方需求规格说明，含 ConOps / OpsCon / 相关方列表 | [根目录 index.html](index.html)（Pages 入口） · [归档目录](submissions/2026-11-15-assignment2/) |
+| 2026-11-20 | 小组作业3：SyRS + 初始架构 + 控制结构框图 | 依据 ISO/IEC/IEEE 29148:2018 表5-1 输出系统需求规格书、初始系统架构、系统控制结构框图与安全需求/安全架构 | [submissions/2026-11-20-assignment3/index.html](submissions/2026-11-20-assignment3/index.html) · [说明文档](submissions/2026-11-20-assignment3/by-wire-chassis-platform-assignment3.md) |
 
 ## 目录结构
 
@@ -22,8 +23,11 @@
 └── submissions/
     ├── 2026-11-11-group-discussion/
     │   └── by-wire-chassis-platform.md         # 六层层级拆解
-    └── 2026-11-15-assignment2/
-        └── index.html                          # 跳转到根目录作业页
+    ├── 2026-11-15-assignment2/
+    │   └── index.html                          # 跳转到根目录作业页
+    └── 2026-11-20-assignment3/
+        ├── index.html                          # SyRS / 初始架构 / 控制结构框图（内嵌 SVG）
+        └── by-wire-chassis-platform-assignment3.md  # 作业3 说明文档
 ```
 
 ## 说明
