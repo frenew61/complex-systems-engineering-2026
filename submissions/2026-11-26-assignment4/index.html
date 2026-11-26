@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>面向高级别自动驾驶的线控底盘平台 — 场景分层 / 运行设计条件 / 风险分析 | 复杂系统工程课程作业4</title>
+<style>
+  :root{
+    --primary:#1f4e79; --accent:#2e8b8b; --warn:#c0392b; --bg:#f7f9fb;
+    --card:#ffffff; --line:#e2e8f0; --text:#1f2937; --muted:#64748b;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);line-height:1.75;}
+  header{background:linear-gradient(135deg,#1f4e79,#2e6b8b);color:#fff;padding:48px 24px 36px;text-align:center;}
+  header h1{margin:0 0 8px;font-size:28px;}
+  header p{margin:4px 0;opacity:.92;}
+  nav{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;z-index:10;}
+  nav a{color:var(--primary);text-decoration:none;font-size:14px;padding:4px 10px;border-radius:14px;background:#eef4f9;}
+  nav a:hover{background:var(--primary);color:#fff;}
+  main{max-width:1120px;margin:0 auto;padding:24px;}
+  section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:24px 28px;margin:20px 0;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  h2{color:var(--primary);border-left:5px solid var(--accent);padding-left:12px;margin-top:0;}
+  h3{color:#244; margin-top:28px;}
+  h4{color:var(--primary);margin-bottom:6px;}
+  table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px;}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top;}
+  th{background:#eef4f9;color:var(--primary);}
+  tr:nth-child(even) td{background:#fafcfe;}
+  .badge{display:inline-block;background:var(--accent);color:#fff;font-size:12px;padding:2px 8px;border-radius:10px;margin-left:6px;}
+  .callout{background:#fff8e6;border-left:4px solid #e6a23c;padding:10px 14px;border-radius:4px;margin:12px 0;font-size:14px;}
+  .req-id{font-family:Consolas,monospace;color:var(--warn);font-weight:600;white-space:nowrap;}
+  ul.tight li{margin:3px 0;}
+  .diagram-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;background:#fff;padding:12px;}
+  .chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0;}
+  .chain .step{flex:1;min-width:170px;background:#eef4f9;border-top:4px solid var(--primary);border-radius:6px;padding:10px;}
+  .chain .step.mine{border-top-color:var(--warn);background:#fdecea;}
+  .chain .arrow{font-size:20px;color:var(--muted);}
+  .risk-high{color:#c0392b;font-weight:700;}
+  .risk-mid{color:#e6a23c;font-weight:700;}
+  footer{text-align:center;color:var(--muted);font-size:13px;padding:24px;}
+  svg text{font-family:"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>面向高级别自动驾驶的线控底盘平台</h1>
+  <p>场景分层 · 场景要素梳理 · 运行设计条件（ODC）· 典型场景论述 · 安全风险分析</p>
+  <p>Complex Systems Engineering · 小组作业 4 · 2026-11-26</p>
+</header>
+
+<nav>
+  <a href="#trace">作业衔接</a>
+  <a href="#layers">场景分层</a>
+  <a href="#elements">场景要素</a>
+  <a href="#odc">运行设计条件</a>
+  <a href="#typical">典型场景论述</a>
+  <a href="#risk">风险场景列表</a>
+</nav>
+
+<main>
+
+<section id="trace">
+  <h2>一、作业衔接与分析基础</h2>
+  <p>本作业是课程小组作业的第四次提交，与前三次作业在时间与逻辑上前后衔接：</p>
+  <div class="chain">
+    <div class="step"><div class="tag">作业1 · 2026-11-11</div><div class="name">六层层级拆解</div>
+      <ul class="tight"><li>定位本系统于 Systems 层，梳理任务—体系—整机—系统—子系统—模块要素</li></ul></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="tag">作业2 · 2026-11-15</div><div class="name">BRS + StRS</div>
+      <ul class="tight"><li>输出业务需求、相关方列表、相关方需求（StRS）、ConOps / OpsCon</li></ul></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="tag">作业3 · 2026-11-20</div><div class="name">SyRS + 架构 + 框图</div>
+      <ul class="tight"><li>系统需求规格、初始架构（ARCH-01~06）、控制结构框图、安全需求与安全架构</li></ul></div>
+    <div class="arrow">→</div>
+    <div class="step mine"><div class="tag">作业4 · 2026-11-26</div><div class="name">场景分层 + ODC + 风险</div>
+      <ul class="tight"><li>场景分层、要素梳理、运行设计条件、典型场景论述、风险场景列表</li></ul></div>
+  </div>
+
+  <p>作业4 在作业3 已定义的系统边界、架构、运行模式（M1~M4）与安全需求（SAFE-01~05）基础上，从「系统所处环境」出发做场景化分析：先逐层拆解场景，再明确正常运行的设计条件，选取典型场景详细论述，并对其做安全风险分析，形成风险场景列表，反向追溯到既有架构与安全需求。</p>
+
+  <div class="callout">分析对象：<strong>面向 L4/L5 高级别自动驾驶的线控底盘平台</strong>——以电信号为指令载体，通过冗余架构实现制动、转向、驱动、悬架等整车运动控制，向上承接智驾域决策指令，向下驱动执行部件。</div>
+</section>
+
+<section id="layers">
+  <h2>二、场景分层<span class="badge">按系统所处环境</span></h2>
+  <p>以线控底盘平台为分析主体，按「从宏观任务到微观操控、再到系统状态」的方向，将系统所处环境划分为 5 个正常场景层；另设风险场景层贯穿各层，承接第六节安全风险分析。分层与作业3 控制结构框图中的 Environment、Driver、System、Vehicle、Other System 要素相对应。</p>
+
+  <div class="diagram-wrap">
+  <svg viewBox="0 0 1120 560" width="100%" role="img" aria-label="线控底盘平台场景分层图">
+    <defs>
+      <marker id="arr-down" markerWidth="10" markerHeight="10" refX="5" refY="8" orient="auto" markerUnits="strokeWidth">
+        <path d="M0,0 L5,8 L10,0 Z" fill="#64748b"/>
+      </marker>
+    </defs>
+
+    <rect x="880" y="40" width="210" height="440" fill="#fdecea" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="8 5" rx="8"/>
+    <text x="985" y="70" text-anchor="middle" fill="#c0392b" font-size="15" font-weight="700">L6 风险场景层</text>
+    <text x="985" y="94" text-anchor="middle" fill="#c0392b" font-size="12">Hazard Scenario</text>
+    <text x="895" y="130" fill="#1f2937" font-size="11">· 硬件 / 软件失效</text>
+    <text x="895" y="154" fill="#1f2937" font-size="11">· 指令超限</text>
+    <text x="895" y="178" fill="#1f2937" font-size="11">· 极限附着 / 姿态工况</text>
+    <text x="895" y="202" fill="#1f2937" font-size="11">· 预期功能局限</text>
+    <text x="895" y="226" fill="#1f2937" font-size="11">· 网络攻击 / 通信中断</text>
+    <text x="895" y="270" fill="#c0392b" font-size="11" font-weight="600">贯穿 L1~L5 各层，</text>
+    <text x="895" y="290" fill="#c0392b" font-size="11" font-weight="600">由 ARCH-06 识别 / 降级 / 兜底</text>
+
+    <g font-size="13">
+      <rect x="60" y="40" width="780" height="76" fill="#eef4f9" stroke="#1f4e79" rx="8"/>
+      <text x="84" y="70" font-weight="700" fill="#1f4e79">L1 任务场景层 Mission</text>
+      <text x="84" y="96" fill="#1f2937" font-size="12">城区载客接驳 · 点对点通勤 · 园区/物流配送 · 失效兜底停车</text>
+
+      <rect x="60" y="132" width="780" height="76" fill="#eaf3f3" stroke="#2e8b8b" rx="8"/>
+      <text x="84" y="162" font-weight="700" fill="#2e6b6b">L2 环境场景层 Environment</text>
+      <text x="84" y="188" fill="#1f2937" font-size="12">道路拓扑与等级 · 路面附着 · 坡度 · 气象光照 · 地理与法规区域 · 基础设施</text>
+
+      <rect x="60" y="224" width="780" height="76" fill="#f3f0d8" stroke="#b8a86a" rx="8"/>
+      <text x="84" y="254" font-weight="700" fill="#5a4a1a">L3 交通交互场景层 Traffic Interaction</text>
+      <text x="84" y="280" fill="#1f2937" font-size="12">跟车 · 切入切出 · 路口交会 · 行人/非机动车横穿 · 静态障碍避让</text>
+
+      <rect x="60" y="316" width="780" height="76" fill="#fdecea" stroke="#c0392b" rx="8"/>
+      <text x="84" y="346" font-weight="700" fill="#c0392b">L4 运动操控场景层 Maneuver</text>
+      <text x="84" y="372" fill="#1f2937" font-size="12">巡航 · 纵向加减速 · 转向/变道执行 · 紧急制动 · 避障轨迹跟踪 · 低附着操控 · 驻车</text>
+
+      <rect x="60" y="408" width="780" height="76" fill="#eeeaf7" stroke="#5b4b9a" rx="8"/>
+      <text x="84" y="438" font-weight="700" fill="#4a3d80">L5 系统状态场景层 System State</text>
+      <text x="84" y="464" fill="#1f2937" font-size="12">M1 全自动驾驶 · 降级限速 · M2 远程接管 · M3 最小风险 MRM · M4 维保</text>
+    </g>
+
+    <line x1="450" y1="116" x2="450" y2="130" stroke="#64748b" stroke-width="2" marker-end="url(#arr-down)"/>
+    <line x1="450" y1="208" x2="450" y2="222" stroke="#64748b" stroke-width="2" marker-end="url(#arr-down)"/>
+    <line x1="450" y1="300" x2="450" y2="314" stroke="#64748b" stroke-width="2" marker-end="url(#arr-down)"/>
+    <line x1="450" y1="392" x2="450" y2="406" stroke="#64748b" stroke-width="2" marker-end="url(#arr-down)"/>
+
+    <text x="60" y="516" fill="#64748b" font-size="12">自上而下：任务约束环境与交互 → 交互决定操控动作 → 操控在特定系统状态下执行；自下而上：系统状态保证操控 → 操控响应交互 → 交互适配环境 → 支撑任务完成。</text>
+  </svg>
+  </div>
+
+  <h3>2.1 分层定义与本系统对应场景</h3>
+  <table>
+    <thead><tr><th>层级</th><th>名称</th><th>回答的问题</th><th>本系统对应场景示例</th></tr></thead>
+    <tbody>
+      <tr><td>L1</td><td>任务场景层 Mission Scenario</td><td>为什么出行、达成什么任务</td><td>城区 Robotaxi 载客接驳、点对点自动驾驶通勤、园区/物流配送、失效兜底停车</td></tr>
+      <tr><td>L2</td><td>环境场景层 Environment Scenario</td><td>在什么样的外部环境中运行</td><td>道路拓扑与等级、路面条件、气象光照、地理与法规区域</td></tr>
+      <tr><td>L3</td><td>交通交互场景层 Traffic Interaction</td><td>与谁发生交互、交互关系如何</td><td>跟车、切入切出、路口交会、行人/非机动车横穿、静态障碍避让</td></tr>
+      <tr><td>L4</td><td>运动操控场景层 Maneuver Scenario</td><td>底盘如何执行车辆运动</td><td>定速巡航、纵向加减速、转向/变道执行、紧急制动、避障轨迹跟踪、低附着操控、驻车</td></tr>
+      <tr><td>L5</td><td>系统状态场景层 System State</td><td>系统处于什么运行/健康状态</td><td>M1 全自动驾驶、降级限速、M2 远程接管、M3 最小风险 MRM、M4 维保</td></tr>
+      <tr><td>L6</td><td>风险场景层 Hazard Scenario</td><td>哪些偏离正常的工况构成风险</td><td>失效、超限、极限工况、预期功能局限、网络攻击（见第六节）</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.2 分层之间的关系</h3>
+  <ul class="tight">
+    <li><strong>自上而下约束</strong>：任务层决定环境层与交互层的选择范围；环境与交通交互决定底盘需要完成的操控动作；操控动作在特定系统状态下执行。</li>
+    <li><strong>自下而上支撑</strong>：系统状态保证操控可执行；操控动作响应交通交互；交通行为适配环境条件；最终支撑任务完成。</li>
+    <li><strong>风险层贯穿各层</strong>：任何一层要素偏离正常取值范围，都可能进入风险场景，由安全架构（ARCH-06）识别、降级或兜底。</li>
+  </ul>
+</section>
+
+<section id="elements">
+  <h2>三、各场景分层的具体场景要素</h2>
+
+  <h3>3.1 L1 任务场景层要素</h3>
+  <table>
+    <thead><tr><th>要素类别</th><th>具体要素</th><th>取值 / 说明</th></tr></thead>
+    <tbody>
+      <tr><td>任务类型</td><td>载客 / 载货 / 兜底</td><td>城区载客接驳、物流配送、失效后安全停车</td></tr>
+      <tr><td>出行目的</td><td>通勤、营运、配送</td><td>点对点出行、网约出租、园区内转运</td></tr>
+      <tr><td>路线约束</td><td>起点—目的地、途经区域</td><td>结构化道路为主，地理围栏内运行</td></tr>
+      <tr><td>运营时段</td><td>高峰 / 平峰 / 夜间</td><td>影响车流密度与光照条件</td></tr>
+      <tr><td>任务优先级</td><td>常规运输 / 应急兜底</td><td>失效兜底场景优先保障安全停车</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.2 L2 环境场景层要素</h3>
+  <table>
+    <thead><tr><th>要素类别</th><th>具体要素</th><th>取值 / 说明</th></tr></thead>
+    <tbody>
+      <tr><td>道路拓扑</td><td>道路等级、车道数与标线、车道宽度、弯道半径、交叉口类型</td><td>城市主干道/支路、城市快速路、高速公路、封闭园区道路、泊车区</td></tr>
+      <tr><td>道路纵断面</td><td>坡度、坡长</td><td>常规运行 ±12% 以内</td></tr>
+      <tr><td>路面条件</td><td>附着系数 μ、路面破损、轮胎状态</td><td>干燥沥青 μ≈0.8；湿滑 μ≈0.4~0.6；冰雪 μ≈0.1~0.3（更低附着仅允许蠕行限速）</td></tr>
+      <tr><td>气象条件</td><td>晴/阴/雨/雪/雾、能见度、气温</td><td>能见度 ≥100 m 为常规运行条件；恶劣天气按等级限速</td></tr>
+      <tr><td>光照条件</td><td>白天/夜间、逆光、隧道出入口、照明设施</td><td>影响感知与定位，间接约束底盘指令范围</td></tr>
+      <tr><td>区域法规</td><td>地理围栏、限速标志、交通规则</td><td>仅在授权区域与法规允许范围内运行</td></tr>
+      <tr><td>基础设施</td><td>V2X 路侧单元、高精地图覆盖、定位基站可用性</td><td>影响车路云协同与定位可靠性</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.3 L3 交通参与者交互场景层要素</h3>
+  <table>
+    <thead><tr><th>要素类别</th><th>具体要素</th><th>取值 / 说明</th></tr></thead>
+    <tbody>
+      <tr><td>机动车</td><td>前车、后车、邻车道车辆</td><td>相对速度、间距、车型、加减速与转向行为</td></tr>
+      <tr><td>弱势交通参与者</td><td>行人、骑行者、非机动车</td><td>直行/横穿/停留，出现位置与运动方向</td></tr>
+      <tr><td>静态障碍</td><td>停放车辆、施工围挡、遗洒物、异形障碍</td><td>位置、尺寸、可通过性</td></tr>
+      <tr><td>交通管控</td><td>信号灯、停车让行标志、交警手势</td><td>通行权与速度约束</td></tr>
+      <tr><td>交互关系</td><td>跟车、被跟随、汇入汇出、路口交会、避让</td><td>对应底盘的纵向与横向响应需求</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.4 L4 车辆运动操控场景层要素</h3>
+  <table>
+    <thead><tr><th>要素类别</th><th>具体要素</th><th>取值 / 说明</th></tr></thead>
+    <tbody>
+      <tr><td>纵向运动</td><td>车速、目标加速度/减速度、目标车距</td><td>城区 0~60 km/h，快速/高速 60~120 km/h</td></tr>
+      <tr><td>横向运动</td><td>目标转角、横摆角速度、横向加速度、跟踪轨迹</td><td>车道保持、变道、避让轨迹跟踪</td></tr>
+      <tr><td>乘坐品质</td><td>jerk、俯仰/侧倾幅值</td><td>常规工况纵向 jerk ≤ 2.5 m/s³</td></tr>
+      <tr><td>载荷状态</td><td>整车质量、轴荷分配、偏载程度</td><td>影响制动距离、转向特性与悬架姿态</td></tr>
+      <tr><td>底盘作动量</td><td>制动压力/夹紧力、驱动/回收扭矩、转向角、悬架刚度与高度作动量</td><td>由指令经控制分配输出到各执行链路</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.5 L5 系统运行状态场景层要素</h3>
+  <table>
+    <thead><tr><th>要素类别</th><th>具体要素</th><th>取值 / 说明</th></tr></thead>
+    <tbody>
+      <tr><td>运行模式</td><td>M1 全自动驾驶 / M2 远程接管 / M3 最小风险 MRM / M4 维保</td><td>与作业3 模式定义一致</td></tr>
+      <tr><td>健康状态</td><td>正常 / 单点降级 / 备份通道运行 / 故障告警</td><td>由独立监控器诊断给出</td></tr>
+      <tr><td>冗余状态</td><td>主/备控制器、通信链路、电源、执行通道状态</td><td>关键信号双源采集、双通道比对</td></tr>
+      <tr><td>自检状态</td><td>上电自检、周期自检、故障码清除情况</td><td>存在未清除的 ASIL 故障时不得进入 M1</td></tr>
+      <tr><td>通信状态</td><td>总线丢包率、指令超时、云控/V2X 链路时延</td><td>超时按安全策略进入降级或 MRM</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.6 跨层人员状态要素</h3>
+  <table>
+    <thead><tr><th>人员类别</th><th>状态取值</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>远程安全员</td><td>在岗 / 在线监控中 / 接管操作中 / 离线</td><td>M2 模式下在线且链路时延满足要求方可遥控；M1 下负责监控与应急接管</td></tr>
+      <tr><td>乘员</td><td>在舱就位 / 安全带约束 / 被动安全可用</td><td>L4 车辆无在环驾驶员，不承担驾驶任务</td></tr>
+      <tr><td>维保人员</td><td>安全工位 / 诊断仪接入 / 退出工位</td><td>仅在 M4 维保模式下介入，车辆限速 5 km/h</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="odc">
+  <h2>四、运行设计条件（ODC）<span class="badge">正常运行边界</span></h2>
+  <p>运行设计条件描述系统<strong>正常运行</strong>所必须满足的设计边界，分为运行设计范围（ODD）、系统状态条件、人员状态条件三组；超出任一条件时，系统应按既有安全策略降级、限速或进入 MRM，而不是继续按正常工况运行。</p>
+
+  <h3>4.1 运行设计范围（ODD）</h3>
+  <table>
+    <thead><tr><th>条件项</th><th>设计范围</th><th>超出范围时的策略</th></tr></thead>
+    <tbody>
+      <tr><td>道路类型</td><td>结构化城市道路、城市快速路、高速公路、封闭园区道路、泊车区域；不含非铺装越野道路</td><td>退出 ODD，请求接管或进入 MRM</td></tr>
+      <tr><td>车速区间</td><td>城区 0~60 km/h；快速/高速 60~120 km/h</td><td>按道路类型限速</td></tr>
+      <tr><td>路面附着</td><td>μ ≥ 0.3；μ 介于 0.1~0.3 时仅允许蠕行限速</td><td>低附着下降低减速度/转角请求，TCS/ABS 介入</td></tr>
+      <tr><td>道路坡度</td><td>±12% 以内</td><td>超坡度限制进入降级限速</td></tr>
+      <tr><td>气象与能见度</td><td>能见度 ≥100 m；常规雨/雪/雾按等级限速；环境工作温度 -10℃~+40℃（器件耐温 -40℃~+85℃）</td><td>能见度/温度越界退出 ODD</td></tr>
+      <tr><td>交通密度</td><td>中低密度车流；行人密集区域限速通行</td><td>高密度/高风险区域降速</td></tr>
+      <tr><td>定位与通信</td><td>高精定位有效；云控/V2X 链路可容忍短时中断</td><td>定位丢失或长时通信中断 → MRM</td></tr>
+      <tr><td>法规区域</td><td>授权地理围栏内，符合当地自动驾驶准入与限速法规</td><td>越界即退出运行</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.2 系统状态条件</h3>
+  <table>
+    <thead><tr><th>条件项</th><th>正常运行要求</th></tr></thead>
+    <tbody>
+      <tr><td>自检与故障</td><td>上电自检通过；无未清除的 ASIL 相关故障码；故障已隔离且不影响基本运动能力</td></tr>
+      <tr><td>通道冗余</td><td>主/备控制、通信、电源与执行通道状态明确；关键信号双源一致</td></tr>
+      <tr><td>模式合法</td><td>仅在 M1/M2/M3/M4 之间按规则切换；不允许从 M4 直接进入 M1</td></tr>
+      <tr><td>指令边界</td><td>上层指令在车速、转角、减速度、扭矩的物理边界与附着能力之内；超限指令先限幅并反馈不可执行性</td></tr>
+      <tr><td>通信供电</td><td>总线无持续丢包、无指令超时；双路供电正常；传感器数据在有效量程内</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.3 人员状态条件</h3>
+  <table>
+    <thead><tr><th>运行模式</th><th>人员状态要求</th></tr></thead>
+    <tbody>
+      <tr><td>M1 全自动驾驶</td><td>无在环驾驶员；远程安全员在岗、监控屏在线并可在约定响应时间内接管；乘员就位、被动安全系统可用</td></tr>
+      <tr><td>M2 远程接管</td><td>远程安全员在线，遥控链路时延与可靠性满足要求；遥控指令按比例映射为底盘作动量</td></tr>
+      <tr><td>M3 最小风险 MRM</td><td>无可介入人员；车辆自主完成减速、靠边停车、双闪与上报，人员不承担操控责任</td></tr>
+      <tr><td>M4 维保</td><td>维保人员处于安全工位、诊断仪已接入；车辆限速 5 km/h，退出工位后方可恢复行驶模式</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="typical">
+  <h2>五、典型场景详细论述</h2>
+
+  <h3>5.1 场景选取</h3>
+  <p>选取 <strong>「城市主干道巡航跟车，前车紧急制动（邻车道存在社会车辆）」</strong>作为典型运行场景。该场景同时覆盖 L1 载客接驳任务、L2 城市道路环境、L3 跟车交互、L4 纵向制动与横向保持操控、L5 正常—降级—MRM 的状态衔接，是线控底盘最具代表性的安全相关工况。</p>
+
+  <h3>5.2 场景背景</h3>
+  <ul class="tight">
+    <li><strong>道路</strong>：城市主干道，单向两车道，干燥沥青路面，白天，能见度良好，限速 50 km/h。</li>
+    <li><strong>车辆</strong>：本车为 L4 Robotaxi，沿本车道直行，车速 40 km/h，跟距满足安全时距；邻车道有社会车辆同向行驶。</li>
+    <li><strong>触发事件</strong>：前车遇路口红灯或前方障碍紧急减速，相对距离快速缩短；本车无在环驾驶员，由智驾域决策、线控底盘执行。</li>
+  </ul>
+
+  <h3>5.3 时序与底盘动作序列</h3>
+  <table>
+    <thead><tr><th>时刻</th><th>事件</th><th>底盘平台响应</th></tr></thead>
+    <tbody>
+      <tr><td>T0 巡航</td><td>车辆沿车道匀速跟车</td><td>M1 状态；驱动扭矩随速调节；主动悬架抑制俯仰；状态周期上报智驾域与云控</td></tr>
+      <tr><td>T1 事件触发</td><td>前车减速度增大、间距缩短；智驾域下发增大的目标减速度与车道保持指令</td><td>DCU 接收指令，启动指令合法性与边界校验</td></tr>
+      <tr><td>T2 校验确认</td><td>减速度、转角在附着与物理边界内；双源传感器数据一致</td><td>校验通过后进入控制分配；不一致则隔离主通道并仲裁降级（SAFE-03）</td></tr>
+      <tr><td>T3 纵向响应</td><td>需要快速减速</td><td>切断/回收驱动扭矩 → 协调能量回收与摩擦制动（EMB/液压备份）逐级建压；悬架抑制点头；必要时 ABS/TCS 介入防止抱死</td></tr>
+      <tr><td>T4 横向保持</td><td>邻车道有社会车辆，不具备安全变道条件</td><td>转向保持本车道，禁止侵入邻车道；若智驾域确认存在可控避让空间，底盘按避让轨迹跟踪</td></tr>
+      <tr><td>T5 停车 / MRM</td><td>前车静止，本车停稳；或制动能力不足、风险未解除</td><td>停稳后 EPB 夹紧；若主通道异常，备份通道投入；风险无法消除时触发 MRM：双闪、靠边停车、上报云控</td></tr>
+    </tbody>
+  </table>
+
+  <h3>5.4 成功判据</h3>
+  <ul class="tight">
+    <li>不发生追尾或侧向刮蹭；</li>
+    <li>减速度跟踪误差 ≤ 0.05 g；常规减速过程纵向 jerk ≤ 2.5 m/s³；</li>
+    <li>横向车道偏离 ≤ 0.2 m；停稳后 EPB 可靠保持；</li>
+    <li>任一链路异常时 200 ms 内进入降级模式，整车仍可安全停车（SAFE-01）；</li>
+    <li>全过程状态、故障与动作记录可追溯，支持诊断与事后复盘。</li>
+  </ul>
+
+  <h3>5.5 与既有作业的追溯</h3>
+  <ul class="tight">
+    <li><strong>架构追溯</strong>：纵向动作对应 ARCH-02 线控制动、ARCH-03 线控驱动；横向保持对应 ARCH-01 线控转向；姿态抑制对应 ARCH-04 主动悬架；校验、冗余与 MRM 仲裁对应 ARCH-05/ARCH-06。</li>
+    <li><strong>需求追溯</strong>：指令校验对应 SyRS-FUNC-01；制动性能对应 SyRS-PERF-02/03；冗余降级对应 SAFE-01/02/03；网络与指令可信对应 SAFE-05。</li>
+  </ul>
+</section>
+
+<section id="risk">
+  <h2>六、安全风险分析与风险场景列表</h2>
+
+  <h3>6.1 分析方法</h3>
+  <p>在典型场景及各层要素范围内，先识别危害来源（执行器失效、传感器失效、通信/电源异常、指令超限、极限附着与姿态工况、感知/规划局限、网络攻击），再逐一描述风险场景、触发诱因、可能后果与风险等级，最后给出缓解措施并追溯到对应架构与安全需求。风险等级按「后果严重度 × 可控性 × 暴露频率」综合评定为高 / 中 / 低。</p>
+
+  <h3>6.2 风险场景列表</h3>
+  <table>
+    <thead><tr><th>编号</th><th>风险场景</th><th>触发诱因</th><th>可能后果</th><th>等级</th><th>关联架构 / 需求</th><th>缓解措施</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="req-id">RS-01</td><td>制动主通道建压失效或迟滞</td><td>EMB 卡钳故障、液压阀卡滞、压力传感器漂移</td><td>制动距离延长，追尾前车</td>
+        <td class="risk-high">高</td><td>ARCH-02/06；SAFE-01、SAFE-02</td>
+        <td>备份制动通道；双源压力监测；200 ms 内降级；冗余建压与 AEB 兜底</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-02</td><td>转向执行失效或卡滞</td><td>转向电机故障、齿条卡滞、转角信号丢失</td><td>偏离车道、冲出道路</td>
+        <td class="risk-high">高</td><td>ARCH-01；SAFE-02</td>
+        <td>备份转向通道；转角双源监控；限速并触发 MRM</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-03</td><td>双通道信号不一致</td><td>传感器漂移、通信错位导致主备数据偏差</td><td>误判车辆状态、产生非预期动作</td>
+        <td class="risk-mid">中</td><td>ARCH-06；SAFE-03</td>
+        <td>独立监控器实时比对；不一致时隔离主通道并仲裁降级</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-04</td><td>总线通信中断或丢包</td><td>网关故障、线束干扰、总线拥塞</td><td>指令丢失或底盘状态无法上报</td>
+        <td class="risk-high">高</td><td>ARCH-05；SyRS-AVAIL-01</td>
+        <td>冗余总线；指令超时进入安全态；规定最后有效指令保持策略</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-05</td><td>单路电源失效</td><td>一路电源或熔断器故障</td><td>执行能力下降、部分链路失效</td>
+        <td class="risk-mid">中</td><td>ARCH-05/06；SAFE-02</td>
+        <td>双源供电与故障切换；备份回路保证最小运动能力</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-06</td><td>上层指令超限</td><td>智驾域下发超速、过大转角或过大减速度</td><td>失控、甩尾、乘坐冲击过大</td>
+        <td class="risk-mid">中</td><td>ARCH-05；SyRS-FUNC-01</td>
+        <td>指令合法性与物理边界校验；超限限幅并反馈可执行性</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-07</td><td>低附着路面紧急制动</td><td>雨雪冰面附着低，紧急制动或猛打方向</td><td>车轮抱死、打滑、甩尾</td>
+        <td class="risk-high">高</td><td>ARCH-02/03；SyRS-PERF</td>
+        <td>附着估计；ABS/TCS 调节；提前减速与限速策略</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-08</td><td>横风/坡道/偏载导致姿态失稳</td><td>强侧风、大坡度、载荷偏移</td><td>侧倾/俯仰过大、轨迹偏移</td>
+        <td class="risk-mid">中</td><td>ARCH-04；SAFE-04</td>
+        <td>姿态与轴荷监测；悬架作动补偿；超限限速降级</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-09</td><td>预期功能局限（SOTIF）</td><td>感知/规划对异形障碍、弱势交通参与者识别不足</td><td>底盘收到迟滞或不可执行的指令</td>
+        <td class="risk-high">高</td><td>SAFE-04；ISO 21448</td>
+        <td>ODD 边界约束；场景库与边界场景验证；必要时降级避让</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-10</td><td>网络攻击或伪造指令</td><td>总线被入侵、控制指令被伪造篡改</td><td>非预期加减速或转向</td>
+        <td class="risk-high">高</td><td>SAFE-05；SyRS-CYBER-01</td>
+        <td>指令签名校验；内外分区隔离；入侵检测；诊断日志防篡改</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-11</td><td>远程接管链路中断</td><td>云驾舱通信中断超过约定时长</td><td>遥控指令丢失，接管失效</td>
+        <td class="risk-mid">中</td><td>ARCH-06；M2 退出条件</td>
+        <td>超时自动退出 M2，转入 M3 最小风险 MRM</td>
+      </tr>
+      <tr>
+        <td class="req-id">RS-12</td><td>悬架/载荷异常</td><td>弹簧或作动器故障、轴荷超限</td><td>车身姿态异常、轮胎抓地恶化</td>
+        <td class="risk-mid">中</td><td>ARCH-04</td>
+        <td>高度/姿态监测；限速告警；触发维保诊断流程</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>6.3 风险处置原则</h3>
+  <ul class="tight">
+    <li><strong>预防</strong>：通过冗余设计、边界校验、ODD 约束与场景库验证，使风险场景尽量不进入执行环节。</li>
+    <li><strong>检测与降级</strong>：独立监控器发现异常后隔离故障通道，按「限制功能 → 限速蠕行 → MRM 靠边停车」分级处置。</li>
+    <li><strong>兜底</strong>：备份链路保证最小转向与制动能力；MRM 完成停车、双闪与上报；全过程数据可追溯，支撑后续 FMEA/FTA 与场景补充。</li>
+  </ul>
+
+  <div class="callout">追溯关系：RS-01~RS-12 的缓解措施均分配至作业3 的 ARCH-01~06 架构与 SAFE-01~05 安全需求；后续设计与验证阶段继续向下分解至硬件/软件需求，并在场景库中补充对应逻辑场景与具体场景。</div>
+</section>
+
+</main>
+
+<footer>
+  Complex Systems Engineering · 小组作业 4 · 面向高级别自动驾驶的线控底盘平台<br>
+  仓库：complex-systems-engineering-2026 · 场景分层 / 运行设计条件 / 安全风险分析 · 2026-11-26
+</footer>
+
+</body>
+</html>
